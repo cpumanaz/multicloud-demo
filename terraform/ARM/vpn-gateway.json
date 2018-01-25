@@ -1,0 +1,82 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "virtualNetworkId": {
+      "type": "string"
+    },
+    "localGatewayId": {
+      "type": "string"
+    },
+    "gatewayName": {
+      "type": "string"
+    },
+    "gatewaySku": {
+      "type": "string"
+    },
+    "gatewayIPAddressId": {
+      "type": "string"
+    },
+    "vpnType": {
+      "type": "String"
+    },
+    "connectionName": {
+      "type": "string"
+    },
+    "preSharedKey": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "apiVersion": "2017-10-01",
+    "gatewaySubnetRef": "[concat(parameters('virtualNetworkId'),'/subnets/','GatewaySubnet')]"
+  },
+  "resources": [{
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/virtualNetworkGateways",
+      "name": "[parameters('gatewayName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [{
+          "properties": {
+            "privateIPAllocationMethod": "Dynamic",
+            "subnet": {
+              "id": "[variables('gatewaySubnetRef')]"
+            },
+            "publicIPAddress": {
+              "id": "[parameters('gatewayIPAddressId')]"
+            }
+          },
+          "name": "vnetGatewayConfig"
+        }],
+        "sku": {
+          "name": "[parameters('gatewaySku')]",
+          "tier": "[parameters('gatewaySku')]"
+        },
+        "gatewayType": "Vpn",
+        "vpnType": "[parameters('vpnType')]",
+        "enableBgp": "false"
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "name": "[parameters('connectionName')]",
+      "type": "Microsoft.Network/connections",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName'))]"
+      ],
+      "properties": {
+        "virtualNetworkGateway1": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('gatewayName'))]"
+        },
+        "localNetworkGateway2": {
+          "id": "[parameters('localGatewayId')]"
+        },
+        "connectionType": "IPsec",
+        "routingWeight": 10,
+        "sharedKey": "[parameters('preSharedKey')]"
+      }
+    }
+  ]
+}
